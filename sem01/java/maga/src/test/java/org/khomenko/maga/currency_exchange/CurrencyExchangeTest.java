@@ -3,42 +3,80 @@ package org.khomenko.maga.currency_exchange;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.util.Currency;
 
 class CurrencyExchangeTest {
-    private static Currency USD = Currency.getInstance("USD");
-    private static Currency GBP = Currency.getInstance("GBP");
-    private static Money UsdMoney = new Money(USD, new BigDecimal(100));
-    private static Money GbpMoney = new Money(USD, new BigDecimal(100));
+    private static final Currency USD = Currency.getInstance("USD");
+    private static final Currency GBP = Currency.getInstance("GBP");
+    private static final Money usdMoney = new Money(USD, 100);
+    private static final Money gbpMoney = new Money(GBP, 100);
 
-    @FunctionalInterface
-    private interface BinaryOperation {
-        Money apply(Money m);
-    }
 
-    private Money BinaryOperationApply(BinaryOperation op, Money m) {
-        return op.apply(m);
-    }
-
-    private void BinaryOperationFailTest(BinaryOperation op, Money m) {
+    private void binaryOperationFailTest(BinaryOperation<Money> op, Money m) {
         Assertions.assertThrows(DifferentCurrenciesException.class, () -> {
-            var money = BinaryOperationApply(op, m);
+            op.apply(m);
         });
     }
 
-    @Test
-    void IncompatibleCurrencyAddTest() {
-        BinaryOperationFailTest(UsdMoney::add, GbpMoney);
+    private void binaryOperationTest(BinaryOperation<Money> op, Money m, Money expected) {
+        var result = op.apply(m);
+        Assertions.assertTrue(result.isEqual(expected));
     }
 
     @Test
-    void IncompatibleCurrencySubtractTest() {
-        BinaryOperationFailTest(UsdMoney::subtract, GbpMoney);
+    void moneyIsEqualTest() {
+        var m1 = new Money(USD, 10);
+        var m2 = new Money(USD, 10);
+
+        Assertions.assertTrue(m1.isEqual(m2));
     }
 
     @Test
-    void Test() {
+    void moneyAddTest() {
+        var m1 = new Money(USD, 100);
+        var m2 = new Money(USD, 10);
+        var expected = new Money(USD, 110);
+
+        binaryOperationTest(m1::add, m2, expected);
+    }
+
+    @Test
+    void moneySubtractTest() {
+        var m1 = new Money(USD, 100);
+        var m2 = new Money(USD, 10);
+        var expected = new Money(USD, 90);
+
+        binaryOperationTest(m1::subtract, m2, expected);
+    }
+
+    @Test
+    void moneyMultiplyTest() {
+        var tenDollars = new Money(USD, 10);
+        var hundredDollars = new Money(USD, 100);
+
+        Assertions.assertTrue(tenDollars.multiply(tenDollars.getAmount()).isEqual(hundredDollars));
+    }
+
+    @Test
+    void moneyDivideTest() {
+        var tenDollars = new Money(USD, 10);
+        var hundredDollars = new Money(USD, 100);
+
+        Assertions.assertTrue(hundredDollars.divide(tenDollars.getAmount()).isEqual(tenDollars));
+    }
+
+    @Test
+    void incompatibleMoneyAddTest() {
+        binaryOperationFailTest(usdMoney::add, gbpMoney);
+    }
+
+    @Test
+    void incompatibleMoneySubtractTest() {
+        binaryOperationFailTest(usdMoney::subtract, gbpMoney);
+    }
+
+    @Test
+    void test() {
 //        Currency usd = Currency.getInstance("USD");
 //        Currency gbp = Currency.getInstance("GBP");
 //
