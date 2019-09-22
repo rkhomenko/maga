@@ -2,7 +2,9 @@ package org.khomenko.maga.currency_exchange;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Currency;
+import java.util.List;
 
 public class Money {
     private Currency currency;
@@ -39,8 +41,25 @@ public class Money {
         return applyBinaryOperation(getAmount()::multiply, ratio);
     }
 
-    public Money divide(BigDecimal ratio) {
-        return applyBinaryOperation(getAmount()::divide, ratio);
+    public List<Money> divide(int numParts) {
+        var result = new ArrayList<Money>();
+        var part = getAmount().divide(new BigDecimal(numParts), RoundingMode.FLOOR);
+
+        var sum = BigDecimal.ZERO;
+        for (int i = 0; i < numParts - 1; i++) {
+            result.add(new Money(getCurrency(), part));
+            sum = sum.add(part);
+        }
+
+        var r = getAmount().subtract(sum);
+        if (r.compareTo(BigDecimal.ZERO) > 0) {
+            result.add(new Money(getCurrency(), r));
+        }
+        else if (r.compareTo(BigDecimal.ZERO) == 0) {
+            result.add(new Money(getCurrency(), part));
+        }
+
+        return result;
     }
 
     public boolean isEqual(Money m) {

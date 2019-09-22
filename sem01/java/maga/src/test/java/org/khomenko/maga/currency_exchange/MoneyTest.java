@@ -2,14 +2,17 @@ package org.khomenko.maga.currency_exchange;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
 import java.util.Currency;
 
-class CurrencyExchangeTest {
-    private static final Currency USD = Currency.getInstance("USD");
-    private static final Currency GBP = Currency.getInstance("GBP");
-    private static final Money usdMoney = new Money(USD, 100);
-    private static final Money gbpMoney = new Money(GBP, 100);
+class MoneyTest {
+    public static final Currency USD = Currency.getInstance("USD");
+    public static final Currency GBP = Currency.getInstance("GBP");
+    public static final Money usdMoney = new Money(USD, 100);
+    public static final Money gbpMoney = new Money(GBP, 100);
 
 
     private void binaryOperationFailTest(BinaryOperation<Money> op, Money m) {
@@ -57,12 +60,21 @@ class CurrencyExchangeTest {
         Assertions.assertTrue(tenDollars.multiply(tenDollars.getAmount()).isEqual(hundredDollars));
     }
 
-    @Test
-    void moneyDivideTest() {
-        var tenDollars = new Money(USD, 10);
+    @ParameterizedTest
+    @ValueSource(ints = {
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+            100, 129, 257, 513, 777, 1000, 1500, 10000})
+    void moneyDivideTest(int numParts) {
         var hundredDollars = new Money(USD, 100);
+        var result = hundredDollars.divide(numParts);
 
-        Assertions.assertTrue(hundredDollars.divide(tenDollars.getAmount()).isEqual(tenDollars));
+        var sum = new BigDecimal(0);
+        for (Money part: result) {
+            sum = sum.add(part.getAmount());
+        }
+
+        Assertions.assertEquals(numParts, result.size());
+        Assertions.assertEquals(hundredDollars.getAmount(), sum);
     }
 
     @Test
@@ -73,31 +85,5 @@ class CurrencyExchangeTest {
     @Test
     void incompatibleMoneySubtractTest() {
         binaryOperationFailTest(usdMoney::subtract, gbpMoney);
-    }
-
-    @Test
-    void test() {
-//        Currency usd = Currency.getInstance("USD");
-//        Currency gbp = Currency.getInstance("GBP");
-//
-//        Money usdMoney = new Money(usd, new BigDecimal(100));
-//        Money tenDollars = new Money(usd, new BigDecimal(10));
-//        Money tenPound = new Money(gbp, new BigDecimal(10));
-//        CurrencyExchangeRate poundToUsd = new CurrencyExchangeRate(new BigDecimal(1.5), gbp, usd);
-//
-//        //should set usdMoney 110 with scale 2
-//        usdMoney = usdMoney.add(tenDollars);
-//        System.out.println(usdMoney.getAmount().equals(new BigDecimal(110).setScale(2)));
-//
-//        //should throw DifferentCurrenciesException
-//        try {
-//            usdMoney = usdMoney.subtract(tenPound);
-//        } catch(DifferentCurrenciesException ex) {
-//            System.out.println("DifferentCurrenciesException thrown");
-//        }
-//
-//        //should set usdMoney 95 with scale 2
-//        usdMoney = usdMoney.subtract(poundToUsd.convert(tenPound));
-//        System.out.println(usdMoney.getAmount().equals(new BigDecimal(95).setScale(2)));
     }
 }
