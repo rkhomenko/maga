@@ -4,6 +4,7 @@ import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
@@ -76,14 +77,14 @@ public class SocialNetwork {
         }
 
         var endpointPairs = graph.incidentEdges(user);
-
         for (var endpointPair : endpointPairs) {
             var otherUser = endpointPair.adjacentNode(user);
-
             if (graph.hasEdgeConnecting(otherUser, user) && !graph.hasEdgeConnecting(user, otherUser)) {
                 result.add(otherUser);
             }
         }
+
+        result.sort(Comparator.comparing(User::getLogin));
 
         return result;
     }
