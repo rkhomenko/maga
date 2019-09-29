@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.khomenko.maga.socialnetwork.SocialNetwork;
+import org.khomenko.maga.socialnetwork.User;
 
 import java.io.IOException;
-import java.sql.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -16,6 +16,7 @@ class SocialNetworkTest {
     private static SocialNetwork socialNetwork;
     private static HashMap<String, List<String>> followers;
     private static HashMap<String, List<List<String>>> friends;
+    private static int usersCount;
 
     static void loadGraph() {
         final String fileName = "graph.json";
@@ -33,6 +34,8 @@ class SocialNetworkTest {
             JsonNode adjacencyNodes = actualObject.get("adjacency");
 
             int nodeCount = graphNodes.size();
+            usersCount = nodeCount;
+
             for (int i = 0; i < nodeCount; i++) {
                 var firstName = String.format("firstName%d", i);
                 var lastName = String.format("lastName%d", i);
@@ -72,7 +75,7 @@ class SocialNetworkTest {
             JsonNode followersNode = actualObject.get("followers");
             JsonNode friendsNode = actualObject.get("friends");
 
-            for (int i = 0; i < followersNode.size(); i++) {
+            for (int i = 0; i < usersCount; i++) {
                 var login = String.valueOf(i);
                 var followersArray = followersNode.get(login);
 
@@ -91,7 +94,7 @@ class SocialNetworkTest {
             for (int level = 1; level < friendsNode.size() + 1; level++) {
                 var levelNode = friendsNode.get(String.valueOf(level));
 
-                for (int i = 0; i < levelNode.size(); i++) {
+                for (int i = 0; i < usersCount; i++) {
                     var login = String.valueOf(i);
                     var friendNode = levelNode.get(login);
                     var list = new ArrayList<String>();
@@ -127,18 +130,40 @@ class SocialNetworkTest {
 
     @Test
     void followersTest() {
-        final int userCount = followers.size();
-
-        for (int i = 0; i < userCount; i++) {
+        for (int i = 0; i < usersCount; i++) {
             var login = String.valueOf(i);
             var followers = socialNetwork.getFollowers(login).stream()
-                    .map(obj -> Objects.toString(obj, null))
+                    .map(User::toString)
                     .collect(Collectors.toList());
             var expectedFollowers = SocialNetworkTest.followers.get(login);
             expectedFollowers.sort(String::compareTo);
 
             Assertions.assertEquals(expectedFollowers.size(), followers.size());
             Assertions.assertEquals(expectedFollowers, followers);
+        }
+    }
+
+    @Test
+    void friendsTest() {
+        final int levelCount = friends.size();
+
+        for (int level = 1; level <= levelCount; level++) {
+            for (int i = 0; i < usersCount; i++) {
+                var login = String.valueOf(i);
+                var expectedFriendsLevelList = friends.get(login);
+                if (expectedFriendsLevelList == null || expectedFriendsLevelList.size() < level) {
+                    continue;
+                }
+
+                var expectedFriends = expectedFriendsLevelList.get(level - 1);
+                expectedFriends.sort(String::compareTo);
+
+                var friends = socialNetwork.getFriends(login, level).stream()
+                        .map(User::toString).collect(Collectors.toList());
+
+                Assertions.assertEquals(expectedFriends.size(), friends.size());
+                Assertions.assertEquals(expectedFriends, friends);
+            }
         }
     }
 }
