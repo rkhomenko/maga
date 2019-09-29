@@ -3,10 +3,8 @@ package org.khomenko.maga.socialnetwork;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class SocialNetwork {
     private HashMap<String, User> users;
@@ -89,4 +87,33 @@ public class SocialNetwork {
         return result;
     }
 
+    public List<User> getFriends(String login, int level) {
+        if (!containsUser(login)) {
+            throw new UserNotExistsException(login);
+        }
+
+        var user = getUser(login);
+        var result = new HashSet<User>();
+        getFriendsOnLevel(user, user, result, level, 1);
+
+        var friends = new ArrayList<>(result);
+        friends.sort(Comparator.comparing(User::getLogin));
+
+        return friends;
+    }
+
+    private void getFriendsOnLevel(User parent, User user, Set<User> friends, int level, int currentLevel) {
+        var endpointPairs = graph.incidentEdges(user);
+        for (var endpointPair : endpointPairs) {
+            var otherUser = endpointPair.adjacentNode(user);
+
+            if (graph.hasEdgeConnecting(user, otherUser) && graph.hasEdgeConnecting(otherUser, user)
+                    && otherUser != parent) {
+                friends.add(otherUser);
+                if (currentLevel < level) {
+                    getFriendsOnLevel(parent, otherUser, friends, level, currentLevel + 1);
+                }
+            }
+        }
+    }
 }
