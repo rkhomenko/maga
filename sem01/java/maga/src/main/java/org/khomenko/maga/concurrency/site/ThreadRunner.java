@@ -25,9 +25,15 @@ public class ThreadRunner {
                 }
             }
         };
+
         ExecutorService service = Executors.newFixedThreadPool(threadNum);
-        for (int i = 0; i < threadNum; i++) {
-            service.submit(task);
+        var tasks = Collections.nCopies(threadNum, Executors.callable(task));
+
+        try {
+            var results = service.invokeAll(tasks);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();;
         }
 
         service.shutdown();
