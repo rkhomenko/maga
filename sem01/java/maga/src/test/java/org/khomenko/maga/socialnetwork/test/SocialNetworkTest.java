@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.khomenko.maga.socialnetwork.SocialNetwork;
 import org.khomenko.maga.socialnetwork.User;
@@ -123,12 +124,14 @@ class SocialNetworkTest {
     }
 
     @BeforeAll
+    @Disabled
     static void loadJsons() {
         loadGraph();
         loadFollowersAndFriends();
     }
 
     @Test
+    @Disabled
     void followersTest() {
         for (int i = 0; i < usersCount; i++) {
             var login = String.valueOf(i);
@@ -144,6 +147,7 @@ class SocialNetworkTest {
     }
 
     @Test
+    @Disabled
     void friendsTest() {
         final int levelCount = friends.size();
 
