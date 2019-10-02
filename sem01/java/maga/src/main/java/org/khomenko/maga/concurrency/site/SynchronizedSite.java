@@ -22,11 +22,12 @@ public class SynchronizedSite implements Site {
         return requestCounter.values();
     }
 
-    public synchronized Integer getPage(String page) {
-        if (!requestCounter.containsKey(page)) {
-            throw new UnsupportedOperationException();
+    public Integer getPage(String page) {
+        synchronized (requestCounter) {
+            if (!requestCounter.containsKey(page)) {
+                throw new UnsupportedOperationException();
+            }
+            return requestCounter.merge(page, 1, Integer::sum);
         }
-
-        return requestCounter.merge(page, 1, Integer::sum);
     }
 }
