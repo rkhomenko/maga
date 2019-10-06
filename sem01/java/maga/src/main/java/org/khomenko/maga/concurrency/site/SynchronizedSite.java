@@ -1,27 +1,22 @@
 package org.khomenko.maga.concurrency.site;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.IntStream;
 
-public class SynchronizedSite implements Site {
-    private Map<String, Integer> requestCounter;
+public class SynchronizedSite extends Site {
+    private final Map<String, Integer> requestCounter;
 
     public SynchronizedSite() {
         requestCounter = new HashMap<>();
-        IntStream.rangeClosed(1, 5).forEach(i -> requestCounter.put("/page?id=" + i, 0));
+        getPages().forEach(page -> requestCounter.put(page, 0));
     }
 
-    public Set<String> getPages() {
-        return requestCounter.keySet();
+    @Override
+    protected void onGetCounters() {
+        setResults(requestCounter.values());
     }
 
-    public Collection<Integer> getCounters() {
-        return requestCounter.values();
-    }
-
+    @Override
     public Integer getPage(String page) {
         synchronized (requestCounter) {
             if (!requestCounter.containsKey(page)) {
