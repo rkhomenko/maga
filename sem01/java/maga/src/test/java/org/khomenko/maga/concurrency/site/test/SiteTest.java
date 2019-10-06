@@ -18,7 +18,7 @@ class SiteTest {
 
     @ParameterizedTest
     @MethodSource("sitesProvider")
-    void objectSynchronizedSiteTest(Site site) {
+    void siteTest(Site site) {
         ThreadRunner threadRunner = new ThreadRunner(site);
         threadRunner.run();
         Assertions.assertEquals(threadRunner.expectedSum(), threadRunner.sum());
