@@ -52,19 +52,6 @@ public class Iris {
         return species;
     }
 
-    static Iris parse(String line) {
-        String[] parts = line.split(",");
-        Iris result = new Iris(
-                Double.parseDouble(parts[0]),
-                Double.parseDouble(parts[1]),
-                Double.parseDouble(parts[2]),
-                Double.parseDouble(parts[3]),
-                parts[4]
-        );
-
-        return result;
-    }
-
     @Override
     public boolean equals(Object other) {
         if (other == null) {
@@ -91,7 +78,7 @@ public class Iris {
                 ", sepalWidth=" + sepalWidth +
                 ", petalLength=" + petalLength +
                 ", petalWidth=" + petalWidth +
-                ", species='" + species + '\'' +
+                ", species='" + species + "'" +
                 '}';
     }
 }

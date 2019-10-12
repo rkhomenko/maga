@@ -1,4 +1,4 @@
-package org.khomenko.maga.cvs.test;
+package org.khomenko.maga.csv.test;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -11,10 +11,10 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Collection;
 
-class CvsTest {
+class CsvTest {
     @Test
     void parseAndReflectTest() {
-        var inputStream = CvsTest.class.getClassLoader().getResourceAsStream("iris_test.data");
+        var inputStream = CsvTest.class.getClassLoader().getResourceAsStream("iris_test.data");
         var bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
         Collection<Iris> parsedIrises = null;
 
