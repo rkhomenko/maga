@@ -2,13 +2,14 @@ package org.khomenko.maga.csv;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class CsvReader {
     public static <T> Collection<T> readToObjects(Class<T> c, BufferedReader reader) throws IOException {
         var columnNames = parseLine(reader.readLine());
-        var columnToField = generateColumnToFiledName(c, new HashSet<>(Arrays.asList(columnNames)));
+        var columnToField = generateColumnToFiled(c, new HashSet<>(Arrays.asList(columnNames)));
         var result = new ArrayList<T>();
 
         var line = reader.readLine();
@@ -24,7 +25,8 @@ public class CsvReader {
             }
 
             for (int i = 0; i < columnValues.length; i++) {
-                setObjectField(object, columnToField.get(columnNames[i]), columnValues[i]);
+                var field = columnToField.get(columnNames[i]);
+                setObjectField(object, field, columnValues[i]);
             }
             result.add(object);
 
@@ -39,7 +41,7 @@ public class CsvReader {
         return line.split(",");
     }
 
-    private static Map<String, String> generateColumnToFiledName(Class<?> c, Set<String> columnNames) {
+    private static Map<String, Field> generateColumnToFiled(Class<?> c, Set<String> columnNames) {
         String defaultColumnName = null;
         try {
             defaultColumnName = (String)CsvColumn.class.getDeclaredMethod("name").getDefaultValue();
@@ -48,7 +50,7 @@ public class CsvReader {
             e.printStackTrace();
         }
 
-        var columnToField = new HashMap<String, String>();
+        var columnToField = new HashMap<String, Field>();
 
         for (var field : c.getDeclaredFields()) {
             var annotation = field.getAnnotation(CsvColumn.class);
@@ -59,11 +61,11 @@ public class CsvReader {
                                 "Column name " + annotation + " doesn't contain in CSV");
                     }
 
-                    columnToField.put(annotation.name(), field.getName());
+                    columnToField.put(annotation.name(), field);
                 }
                 else {
                     if (columnNames.contains(field.getName())) {
-                        columnToField.put(field.getName(), field.getName());
+                        columnToField.put(field.getName(), field);
                     }
                     else {
                         throw new CsvReaderBadAnnotationException(
@@ -80,13 +82,12 @@ public class CsvReader {
         return columnToField;
     }
 
-    private static void setObjectField(Object obj, String objectField, String value) {
+    private static void setObjectField(Object obj, Field field, String value) {
+        field.setAccessible(true);
         try {
-            var field = obj.getClass().getDeclaredField(objectField);
-            field.setAccessible(true);
             field.set(obj, parseString(field.getType(), value));
         }
-        catch (NoSuchFieldException | IllegalAccessException e) {
+        catch (IllegalAccessException e) {
             e.printStackTrace();
         }
     }
