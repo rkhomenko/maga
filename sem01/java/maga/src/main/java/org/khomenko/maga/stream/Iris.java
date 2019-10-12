@@ -2,10 +2,6 @@ package org.khomenko.maga.stream;
 
 import org.khomenko.maga.csv.CsvColumn;
 
-enum Petal {
-    SMALL, MEDIUM, LARGE,
-}
-
 public class Iris {
     @CsvColumn
     private Double sepalLength; // длина чашелистника
@@ -21,6 +17,20 @@ public class Iris {
 
     @CsvColumn
     private String species; // вид
+
+    public enum Petal {
+        SMALL, MEDIUM, LARGE,
+    }
+
+    public static Petal classifyByPatel(Iris iris) {
+        double patelSquare = iris.getPetalWidth() * iris.getPetalLength();
+        if (patelSquare < 2.0) {
+            return Petal.SMALL;
+        } else if (patelSquare < 5.0) {
+            return Petal.MEDIUM;
+        }
+        return Petal.LARGE;
+    }
 
     public Iris() {}
 
