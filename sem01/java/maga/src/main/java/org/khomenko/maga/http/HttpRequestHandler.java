@@ -10,7 +10,7 @@ import java.net.Socket;
 import java.util.Map;
 
 public class HttpRequestHandler implements Runnable {
-    private static final Logger logger = LogManager.getLogger(ServerMain.class);
+    private static final Logger logger = LogManager.getLogger(HttpRequestHandler.class);
 
     private static final String END_SEQ = "\r\n\r\n";
     private static final HttpResponse okResponse = new HttpResponse();
@@ -92,6 +92,7 @@ public class HttpRequestHandler implements Runnable {
             }
 
             methodResponse = methodResponse == null ? internalServerErrorResponse : methodResponse;
+            methodResponse.addHeader("cache-control", "no-cache,no-store,max-age=0,must-revalidate");
 
             outputWriter.write(methodResponse.toString());
             outputWriter.flush();
