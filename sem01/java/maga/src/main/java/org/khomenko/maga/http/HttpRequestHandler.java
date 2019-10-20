@@ -10,6 +10,13 @@ import java.util.Map;
 
 public class HttpRequestHandler implements Runnable {
     private static final Logger logger = LogManager.getLogger(ServerMain.class);
+    private static final HttpResponse okResponse = new HttpResponse();
+    private static final HttpResponse notFoundResponse = new HttpResponse();
+
+    static {
+        okResponse.setStatusCode(HttpStatusCode.OK);
+        notFoundResponse.setStatusCode(HttpStatusCode.NOT_FOUND);
+    }
 
     private Socket socket;
     private Map<String, HttpRouteHandlers> httpRouteHandlersMap;
@@ -24,9 +31,10 @@ public class HttpRequestHandler implements Runnable {
         char[] buffer = new char[256];
         StringBuilder stringBuilder = new StringBuilder();
 
-        try {
-            InputStream stream = socket.getInputStream();
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(stream));
+        try (BufferedReader bufferedReader = new BufferedReader(
+                new InputStreamReader(socket.getInputStream()));
+             OutputStreamWriter outputWriter = new OutputStreamWriter(socket.getOutputStream());
+             Socket socket = this.socket) {
             do {
                 int bytesCount = bufferedReader.read(buffer, 0, 255);
                 stringBuilder.append(buffer, 0, bytesCount);
@@ -43,20 +51,17 @@ public class HttpRequestHandler implements Runnable {
             String path = getRoute(httpHeader.getPath());
             HttpRouteHandlers httpRouteHandlers = httpRouteHandlersMap.get(path);
             if (httpRouteHandlers == null) {
-                String err = "No route for " + httpHeader.getPath();
-                logger.fatal(err);
-                throw new RuntimeException(err);
+                logger.fatal("No route for " + httpHeader.getPath());
+                outputWriter.write(notFoundResponse.toString());
+                outputWriter.flush();
+
+                return;
             }
 
             logger.debug("Find route class " + httpRouteHandlers.getClassName() + " for path " + path);
 
-            OutputStreamWriter outputWriter = new OutputStreamWriter(socket.getOutputStream());
-            outputWriter.write("HTTP/1.1 200 OK\r\n\r\n");
+            outputWriter.write(okResponse.toString());
             outputWriter.flush();
-
-            stream.close();
-            outputWriter.close();
-            socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
