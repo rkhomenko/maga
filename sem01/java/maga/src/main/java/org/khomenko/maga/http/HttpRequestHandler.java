@@ -11,6 +11,8 @@ import java.util.Map;
 
 public class HttpRequestHandler implements Runnable {
     private static final Logger logger = LogManager.getLogger(ServerMain.class);
+
+    private static final String END_SEQ = "\r\n\r\n";
     private static final HttpResponse okResponse = new HttpResponse();
     private static final HttpResponse notFoundResponse = new HttpResponse();
     private static final HttpResponse internalServerErrorResponse =
@@ -44,8 +46,10 @@ public class HttpRequestHandler implements Runnable {
                 stringBuilder.append(buffer, 0, bytesCount);
             } while (bufferedReader.ready());
 
-            int headerEnd = stringBuilder.indexOf("\r\n\r\n");
+            int headerEnd = stringBuilder.indexOf(END_SEQ);
             String headerStr = stringBuilder.substring(0, headerEnd);
+            String bodyStr = stringBuilder.substring(headerEnd + END_SEQ.length());
+
             HttpHeader httpHeader = HttpHeader.fromString(headerStr);
 
             logger.info("" + httpHeader.getMethod() +
@@ -64,7 +68,7 @@ public class HttpRequestHandler implements Runnable {
 
             logger.debug("Find route class " + httpRouteHandlers.getClassName() + " for path " + path);
 
-            String argument = getArgument(path);
+            String argument = getArgument(httpHeader.getPath());
             boolean withArgument = argument != null;
             HttpRouteHandlers.HttpMethodHandler httpMethodHandler = httpRouteHandlers.getHandler(httpHeader.getMethod(),
                     withArgument);
@@ -74,13 +78,13 @@ public class HttpRequestHandler implements Runnable {
             HttpResponse methodResponse = null;
 
             logger.debug("Trying execute method " + method.getName()
-                    + (argument == null ? "" : "withArgument=" + argument));
+                    + (argument == null ? "" : " withArgument=" + argument));
 
             try {
                 if (withArgument) {
-                    methodResponse = (HttpResponse)method.invoke(object, argument);
+                    methodResponse = (HttpResponse)method.invoke(object, bodyStr, argument);
                 } else {
-                    methodResponse = (HttpResponse) method.invoke(object);
+                    methodResponse = (HttpResponse) method.invoke(object, bodyStr);
                 }
             }
             catch (IllegalAccessException | InvocationTargetException e) {
@@ -104,10 +108,10 @@ public class HttpRequestHandler implements Runnable {
     private String getArgument(String path) {
         String[] strs = path.split("/");
 
-        if (strs.length < 4) {
+        if (strs.length < 3) {
             return null;
         }
 
-        return strs[3];
+        return strs[2];
     }
 }
