@@ -1,10 +1,25 @@
 package org.khomenko.maga.http;
 
-import java.security.cert.CRL;
 import java.util.HashMap;
 import java.util.Map;
 
 public class HttpResponse {
+    public enum ContentType {
+        HTML("text/html; charset=utf-8"),
+        JSON("application/json; charset=utf-8"),
+        DEFAULT("");
+
+        private String typeName;
+
+        ContentType(String typeName) {
+            this.typeName = typeName;
+        }
+
+        public String getTypeName() {
+            return typeName;
+        }
+    }
+
     private static final String CRLF = "\r\n";
     private static final String NL = "\n";
     private static final String SP = " ";
@@ -12,10 +27,12 @@ public class HttpResponse {
     private HttpStatusCode statusCode;
     private Map<String, String> headers;
     private String body;
+    private ContentType contentType;
 
     public HttpResponse() {
         headers = new HashMap<>();
         body = "";
+        contentType = ContentType.DEFAULT;
     }
 
     public HttpStatusCode getStatusCode() {
@@ -34,7 +51,11 @@ public class HttpResponse {
         this.body = body;
     }
 
-    void addHeader(String name, String value) {
+    public void setContentType(ContentType contentType) {
+        this.contentType = contentType;
+    }
+
+    public void addHeader(String name, String value) {
         headers.put(name, value);
     }
 
@@ -55,7 +76,10 @@ public class HttpResponse {
         }
 
         if (body.length() != 0) {
-            stringBuilder.append("Content-length: ")
+            stringBuilder.append("Content-type: ")
+                    .append(contentType.getTypeName())
+                    .append(NL)
+                    .append("Content-length: ")
                     .append(body.length())
                     .append(NL);
         }

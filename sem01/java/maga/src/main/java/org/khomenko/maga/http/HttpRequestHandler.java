@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.khomenko.maga.io.ServerMain;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.util.Map;
 
@@ -12,10 +13,13 @@ public class HttpRequestHandler implements Runnable {
     private static final Logger logger = LogManager.getLogger(ServerMain.class);
     private static final HttpResponse okResponse = new HttpResponse();
     private static final HttpResponse notFoundResponse = new HttpResponse();
+    private static final HttpResponse internalServerErrorResponse =
+            new HttpResponse();
 
     static {
         okResponse.setStatusCode(HttpStatusCode.OK);
         notFoundResponse.setStatusCode(HttpStatusCode.NOT_FOUND);
+        internalServerErrorResponse.setStatusCode(HttpStatusCode.SERVER_ERROR);
     }
 
     private Socket socket;
@@ -60,7 +64,32 @@ public class HttpRequestHandler implements Runnable {
 
             logger.debug("Find route class " + httpRouteHandlers.getClassName() + " for path " + path);
 
-            outputWriter.write(okResponse.toString());
+            String argument = getArgument(path);
+            boolean withArgument = argument != null;
+            HttpRouteHandlers.HttpMethodHandler httpMethodHandler = httpRouteHandlers.getHandler(httpHeader.getMethod(),
+                    withArgument);
+
+            var method = httpMethodHandler.getMethod();
+            var object = httpMethodHandler.getObject();
+            HttpResponse methodResponse = null;
+
+            logger.debug("Trying execute method " + method.getName()
+                    + (argument == null ? "" : "withArgument=" + argument));
+
+            try {
+                if (withArgument) {
+                    methodResponse = (HttpResponse)method.invoke(object, argument);
+                } else {
+                    methodResponse = (HttpResponse) method.invoke(object);
+                }
+            }
+            catch (IllegalAccessException | InvocationTargetException e) {
+                logger.fatal(e.getMessage());
+            }
+
+            methodResponse = methodResponse == null ? internalServerErrorResponse : methodResponse;
+
+            outputWriter.write(methodResponse.toString());
             outputWriter.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -70,5 +99,15 @@ public class HttpRequestHandler implements Runnable {
     private String getRoute(String path) {
         String[] strs = path.split("/");
         return "/" + strs[1];
+    }
+
+    private String getArgument(String path) {
+        String[] strs = path.split("/");
+
+        if (strs.length < 4) {
+            return null;
+        }
+
+        return strs[3];
     }
 }

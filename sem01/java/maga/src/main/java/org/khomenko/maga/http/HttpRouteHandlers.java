@@ -53,7 +53,7 @@ public class HttpRouteHandlers {
         }
 
         for (var entry : methodEntryCollection) {
-            if (entry.withArgument) {
+            if (entry.withArgument == withArgument) {
                 HttpMethodHandler httpMethodHandler = new HttpMethodHandler();
                 httpMethodHandler.method = entry.method;
                 try {
