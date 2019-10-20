@@ -1,13 +1,22 @@
 package org.khomenko.maga.http;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.khomenko.maga.io.ServerMain;
+
 import java.io.*;
 import java.net.Socket;
+import java.util.Map;
 
 public class HttpRequestHandler implements Runnable {
-    private Socket socket;
+    private static final Logger logger = LogManager.getLogger(ServerMain.class);
 
-    public HttpRequestHandler(Socket socket) {
+    private Socket socket;
+    private Map<String, HttpRouteHandlers> httpRouteHandlersMap;
+
+    public HttpRequestHandler(Socket socket, Map<String, HttpRouteHandlers> httpRouteHandlersMap) {
         this.socket = socket;
+        this.httpRouteHandlersMap = httpRouteHandlersMap;
     }
 
     @Override
@@ -27,7 +36,19 @@ public class HttpRequestHandler implements Runnable {
             String headerStr = stringBuilder.substring(0, headerEnd);
             HttpHeader httpHeader = HttpHeader.fromString(headerStr);
 
-            System.out.println(headerStr);
+            logger.info("" + httpHeader.getMethod() +
+                    " request from " + httpHeader.getHost() +
+                    ", route = " + httpHeader.getPath());
+
+            String path = getRoute(httpHeader.getPath());
+            HttpRouteHandlers httpRouteHandlers = httpRouteHandlersMap.get(path);
+            if (httpRouteHandlers == null) {
+                String err = "No route for " + httpHeader.getPath();
+                logger.fatal(err);
+                throw new RuntimeException(err);
+            }
+
+            logger.debug("Find route class " + httpRouteHandlers.getClassName() + " for path " + path);
 
             OutputStreamWriter outputWriter = new OutputStreamWriter(socket.getOutputStream());
             outputWriter.write("HTTP/1.1 200 OK\r\n\r\n");
@@ -39,5 +60,10 @@ public class HttpRequestHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String getRoute(String path) {
+        String[] strs = path.split("/");
+        return "/" + strs[1];
     }
 }
