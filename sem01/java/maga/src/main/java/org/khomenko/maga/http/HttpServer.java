@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +60,9 @@ public class HttpServer implements Runnable {
                 Socket socket = serverSocket.accept();
                 service.submit(new HttpRequestHandler(socket, Collections.unmodifiableMap(httpRouteHandlersMap)));
             }
-        } catch (IOException e) {
+        } catch (SocketException ignored) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }

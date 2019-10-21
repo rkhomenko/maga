@@ -2,7 +2,6 @@ package org.khomenko.maga.http;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.khomenko.maga.io.ServerMain;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
