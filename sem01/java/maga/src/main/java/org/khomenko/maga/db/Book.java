@@ -24,4 +24,15 @@ public class Book {
                 ", title='" + title + '\'' +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object object) {
+        if (object.getClass() != Book.class) {
+            return false;
+        }
+
+        Book book = (Book)object;
+
+        return getId() == book.getId();
+    }
 }

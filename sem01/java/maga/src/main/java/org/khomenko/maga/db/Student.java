@@ -24,4 +24,15 @@ public class Student {
                 ", name='" + name + '\'' +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object object) {
+        if (object.getClass() != Student.class) {
+            return false;
+        }
+
+        Student student = (Student)object;
+
+        return getId() == student.getId();
+    }
 }
