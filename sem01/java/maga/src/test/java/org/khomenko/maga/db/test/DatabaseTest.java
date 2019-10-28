@@ -244,4 +244,30 @@ class DatabaseTest {
 
         Assertions.assertEquals(availableBooks, result);
     }
+
+    @Test
+    void returnBookTest() {
+        Student s = new Student(1, "s");
+        databaseLibrary.addAbonent(s);
+
+        List<Book> allBooks = IntStream.rangeClosed(1, 1000)
+                .mapToObj(x -> new Book(x, "book" + x))
+                .peek(book -> {
+                    databaseLibrary.addNewBook(book);
+
+                    if (book.getId() % 2 == 0) {
+                        databaseLibrary.borrowBook(book, s);
+                    }
+                })
+                .collect(Collectors.toList());
+
+        allBooks.stream()
+                .filter(book -> book.getId() % 2 == 0)
+                .forEach(book -> databaseLibrary.returnBook(book, s));
+
+        List<Book> result = databaseLibrary.findAvailableBooks();
+        result.sort(Comparator.comparingInt(Book::getId));
+
+        Assertions.assertEquals(allBooks, result);
+    }
 }
