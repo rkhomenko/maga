@@ -1,6 +1,5 @@
 package org.khomenko.maga.db;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
@@ -45,13 +44,13 @@ public class DatabaseLibrary implements Library {
 
     public List<Book> findAvailableBooks() {
         List<Book> books = new ArrayList<>();
-        ExecuteQuery(Book.class, books::add, selectFreeBookQuery, "BOOKS");
+        ExecuteQuery(connection, Book.class, books::add, selectFreeBookQuery, "BOOKS");
         return books;
     }
 
     public List<Student> getAllStudents() {
         List<Student> students = new ArrayList<>();
-        ExecuteQuery(Student.class, students::add, selectAllQuery, "ABONENTS");
+        ExecuteQuery(connection, Student.class, students::add, selectAllQuery, "ABONENTS");
         return students;
     }
 
@@ -68,21 +67,18 @@ public class DatabaseLibrary implements Library {
                 connection.setAutoCommit(false);
                 stmt.executeQuery(resultQuery);
                 connection.commit();
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 connection.rollback();
                 throw new QueryException(e.getMessage());
-            }
-            finally {
+            } finally {
                 connection.setAutoCommit(true);
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new QueryException(e.getMessage());
         }
     }
 
-    private <T> void ExecuteQuery(Class<T> tClass, Consumer<T> consumer, String query, Object... objects) {
+    public static <T> void ExecuteQuery(Connection connection, Class<T> tClass, Consumer<T> consumer, String query, Object... objects) {
         String resultQuery = null;
         if (objects == null) {
             resultQuery = query;
@@ -112,16 +108,13 @@ public class DatabaseLibrary implements Library {
                 }
 
                 connection.commit();
-            }
-            catch (SQLException e) {
+            } catch (SQLException e) {
                 connection.rollback();
                 throw new QueryException(e.getMessage());
-            }
-            finally {
+            } finally {
                 connection.setAutoCommit(true);
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new QueryException(e.getMessage());
         }
     }

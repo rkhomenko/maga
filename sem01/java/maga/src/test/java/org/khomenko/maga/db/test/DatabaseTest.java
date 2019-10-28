@@ -6,11 +6,9 @@ import org.khomenko.maga.db.DatabaseLibrary;
 import org.khomenko.maga.db.QueryException;
 import org.khomenko.maga.db.Student;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -137,6 +135,49 @@ class DatabaseTest {
         }
     }
 
+    List<Book> insertBooksQuery() {
+        String query = "insert into BOOKS(BOOK_ID, BOOK_TITLE) values(%d, \'%s\')";
+
+        List<Book> books = new ArrayList<>();
+        try {
+            try (Statement stmt = connection.createStatement()) {
+                connection.setAutoCommit(false);
+
+                IntStream.rangeClosed(1, 1000)
+                        .forEach(value -> {
+                            var book = new Book(value, "book" + value);
+                            books.add(book);
+                            try {
+                                stmt.executeQuery(String.format(query, book.getId(), book.getTitle()));
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e.getMessage());
+                            }
+                        });
+
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+
+        return books;
+    }
+
+    @Test
+    void executeQueryTest() {
+        var insertedBooks = insertBooksQuery();
+        List<Book> books = new ArrayList<>();
+        DatabaseLibrary.ExecuteQuery(connection,
+                Book.class, books::add, "select * from BOOKS", null);
+        books.sort(Comparator.comparingInt(Book::getId));
+
+        Assertions.assertEquals(insertedBooks, books);
+    }
+
     @Test
     void bookUniqueTest() {
         Book book = new Book(1, "book");
@@ -159,20 +200,38 @@ class DatabaseTest {
 
     @Test
     void addMultipleBookTest() {
-        Book b1 = new Book(1, "b1");
-        Book b2 = new Book(2, "b2");
+        List<Book> books = Arrays.asList(
+                new Book(1, "b1"),
+                new Book(2, "b2")
+        );
 
-        databaseLibrary.addNewBook(b1);
-        databaseLibrary.addNewBook(b2);
+        for (var book : books) {
+            databaseLibrary.addNewBook(book);
+        }
+
+        List<Book> insertedBooks = new ArrayList<>();
+        DatabaseLibrary.ExecuteQuery(connection,
+                Book.class, insertedBooks::add, "select * from BOOKS", null);
+
+        Assertions.assertEquals(books, insertedBooks);
     }
 
     @Test
     void addMultipleStudentTest() {
-        Student s1 = new Student(1, "st1");
-        Student s2 = new Student(2, "st2");
+        List<Student> students = Arrays.asList(
+                new Student(1, "b1"),
+                new Student(2, "b2")
+        );
 
-        databaseLibrary.addAbonent(s1);
-        databaseLibrary.addAbonent(s2);
+        for (var student : students) {
+            databaseLibrary.addAbonent(student);
+        }
+
+        List<Student> insertedStudents = new ArrayList<>();
+        DatabaseLibrary.ExecuteQuery(connection,
+                Student.class, insertedStudents::add, "select * from ABONENTS", null);
+
+        Assertions.assertEquals(students, insertedStudents);
     }
 
     @Test
@@ -188,6 +247,9 @@ class DatabaseTest {
 
         databaseLibrary.borrowBook(b1, s);
         databaseLibrary.borrowBook(b2, s);
+
+        var availableBooks = databaseLibrary.findAvailableBooks();
+        Assertions.assertEquals(availableBooks.size(), 0);
     }
 
     @Test
