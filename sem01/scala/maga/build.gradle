@@ -17,8 +17,6 @@ plugins {
     id 'application'
 }
 
-sourceCompatibility = 1.8
-
 repositories {
     // Use jcenter for resolving dependencies.
     // You can declare any Maven/Ivy/file repository here.
@@ -27,8 +25,8 @@ repositories {
 
 dependencies {
     // Scala
-    compile 'org.scala-lang:scala-library:2.13.1'
-    compile 'org.scala-lang:scala-reflect:2.13.1'
+    implementation 'org.scala-lang:scala-library:2.13.1'
+    implementation 'org.scala-lang:scala-reflect:2.13.1'
 
     // Use JUnit Jupiter API for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
@@ -38,7 +36,7 @@ dependencies {
 }
 
 application {
-    mainClassName='org.khomenko.maga.HelloWorld'
+    mainClassName='org.khomenko.maga.sandbox.HelloWorld'
 }
 
 test {
