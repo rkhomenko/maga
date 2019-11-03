@@ -1,5 +1,5 @@
 import numpy as np
-import scipy as sc
+from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
 
@@ -23,5 +23,32 @@ def f(x):
     return (x - 1) ** 2 + 1
 
 
-x = opt_grad(f, np.random.uniform(-5, 5), alpha=0.01, eps=1e-6)
-print(x, f(x))
+def h(x, theta, N):
+    m = x.shape[0]
+
+    w = theta[:N]
+    e = theta[N:2 * N]
+    b = theta[2 * N:2 * N + N * m].reshape((N, m))
+
+    return w * np.exp(-e * np.linalg.norm(x.T - b, axis=-1))
+
+
+def J(x, y, theta, N):
+    return np.sum((h(x, theta, N) - y) ** 2 )
+
+
+n = 5
+m = 3
+N = 2
+
+x = np.ones(m)
+y = np.array([1])
+theta0 = np.random.uniform(0, 1, size=(2 * N + N * m))
+
+j = J(x, y, theta0, N)
+print('Error on random theta:', J(x, y, theta0, N))
+
+opt_result = minimize(lambda theta: J(x, y, theta, N), x0=theta0, method='Nelder-Mead')
+theta_o = opt_result.x
+print('Theta opt:', theta_o)
+print('Error on theta opt:', J(x, y, theta_o, N))
