@@ -37,16 +37,20 @@ class RBFNet:
         return self.w, self.e, self.b
 
     @staticmethod
+    def __split_theta(theta, rbf_num, m):
+        w = theta[:rbf_num]
+        e = theta[rbf_num:2 * rbf_num]
+        b = theta[2 * rbf_num:2 * rbf_num + rbf_num * m].reshape((rbf_num, m))
+
+        return w, e, b
+
+    @staticmethod
     def __h_helper(x, w, e, b):
         return w * np.exp(-e * np.linalg.norm(x.T - b, axis=-1) ** 2)
 
     @staticmethod
     def h_split(X, theta, rbf_num):
-        m = X.shape[1]
-        w = theta[:rbf_num]
-        e = theta[rbf_num:2 * rbf_num]
-        b = theta[2 * rbf_num:2 * rbf_num + rbf_num * m].reshape((rbf_num, m))
-
+        w, e, b = RBFNet.__split_theta(theta, rbf_num, X.shape[1])
         return np.apply_along_axis(lambda x: RBFNet.__h_helper(x, w, e, b), arr=X, axis=1)
 
     @staticmethod
@@ -55,8 +59,24 @@ class RBFNet:
         return h_row_wise.reshape((X.shape[0], X.shape[1]))
 
     @staticmethod
-    def J(X, y, theta, rbf_num, reg=0.1):
-        return np.sum((RBFNet.h(X, theta, rbf_num) - y) ** 2) / 2
+    def J(X, y, theta, rbf_num):
+        return np.sum((RBFNet.h(X, theta, rbf_num) - y) ** 2) / 2 / X.shape[0]
+
+    @staticmethod
+    def J_der(X, y, theta, rbf_num):
+        w, e, b = RBFNet.__split_theta(theta, rbf_num, X.shape[1])
+        err = RBFNet.h(X, theta, rbf_num) - y
+
+        theta_w = theta.copy()
+        theta_w[:rbf_num] = np.ones(rbf_num)
+        w_der = err * RBFNet.h_split(X, theta_w, rbf_num)
+
+        print(w_der.shape)
+
+        # e_der = s * np.apply_along_axis(
+        #     lambda x: - np.linalg.norm(x.T - b, axis=-1) ** 2 * w * np.exp(-e * np.linalg.norm(x.T - b, axis=-1) ** 2),
+        #     arr=X, axis=1)
+        # b_der = s * 3
 
     def train(self, X, y, theta0=None):
         m = X.shape[1]
@@ -73,9 +93,11 @@ class RBFNet:
 
         theta_opt = opt_result.x
 
-        self.__set_w(theta_opt[:rbf_num])
-        self.__set_e(theta_opt[rbf_num:2 * rbf_num])
-        self.__set_b(theta_opt[2 * rbf_num:].reshape((rbf_num, m)))
+        w, e, b = RBFNet.__split_theta(X, self.get_rbf_num(), m)
+
+        self.__set_w(w)
+        self.__set_e(e)
+        self.__set_b(b)
         self.set_theta(theta_opt)
 
     def fit(self, X):
