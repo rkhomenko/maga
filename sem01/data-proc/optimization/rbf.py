@@ -1,5 +1,106 @@
+import abc
 import numpy as np
 from scipy.optimize import minimize as sc_minimize
+import torch
+
+
+class RBFNetBase(metaclass=abc.ABCMeta):
+    def __init__(self, n_components):
+        self.n_components = n_components
+        self.theta = None
+        self.x_dim = 0
+
+    def _split_theta(self):
+        w = self.theta[:self.n_components]
+        e = self.theta[self.n_components:2 * self.n_components]
+        b = self.theta[2 * self.n_components:2 * self.n_components + self.n_components * self.x_dim] \
+            .reshape((self.n_components, self.x_dim))
+
+        return w, e, b
+
+    def h_split(self, X):
+        w, e, b = self._split_theta()
+        return np.apply_along_axis(lambda x: w * np.exp(-e * np.linalg.norm(x.T - b, axis=-1) ** 2),
+                                   arr=X, axis=1)
+
+    def h(self, X):
+        h_row_wise = np.sum(self.h_split(X), axis=1)
+        return h_row_wise.reshape((X.shape[0], X.shape[1]))
+
+    def fit(self, X):
+        return self.h(X)
+
+    @abc.abstractmethod
+    def train(self, X, y, theta0=None, epochs=1000, eps=1e-6):
+        raise NotImplementedError
+
+    def set_x_dim(self, dim):
+        self.x_dim = dim
+
+    def get_x_dim(self):
+        return self.x_dim
+
+    def get_theta(self):
+        return self.theta
+
+    def set_theta(self, theta):
+        self.theta = theta
+
+    def get_params(self):
+        return self._split_theta()
+
+    def get_n_components(self):
+        return self.n_components
+
+
+class RBFNetTorch(RBFNetBase):
+    def train(self, X, y, theta0=None, epochs=1000, eps=1e-6):
+        self.set_x_dim(X.shape[1])
+
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        X = torch.from_numpy(X).float().to(device)
+        y = torch.from_numpy(y).float().to(device)
+
+        w = torch.rand(self.get_n_components(), dtype=torch.float, requires_grad=True, device=device)
+        e = torch.rand(self.get_n_components(), dtype=torch.float, requires_grad=True, device=device)
+        b = torch.rand(size=(self.get_n_components(), self.get_x_dim()),
+                       dtype=torch.float, requires_grad=True, device=device)
+
+        alpha = 0.01
+
+        print(X.shape)
+        print(w.shape)
+        print(e.shape)
+        print(b.shape)
+
+        optimizer = torch.optim.SGD([w, e, b], lr=alpha, momentum=0.9)
+        loss_fn = torch.nn.MSELoss(reduction='mean')
+
+        loss_arr = []
+
+        epoch = 0
+        while True:
+            optimizer.zero_grad()
+            yhat = (w * torch.exp(-e * torch.norm(X - b, dim=1) ** 2)).reshape(y.shape)
+
+            loss = loss_fn(y, yhat)
+            loss.backward()
+            optimizer.step()
+
+            loss_arr.append(loss.item())
+            epoch += 1
+
+            if epoch > epochs or loss.item() < eps:
+                break
+
+        w = w.cpu().detach().numpy()
+        e = e.cpu().detach().numpy()
+        b = b.flatten().cpu().detach().numpy()
+
+        self.set_theta(np.hstack((w, e, b)))
+
+        return loss_arr
 
 
 class RBFNet:
