@@ -18,9 +18,9 @@ trait DataLoader {
 
   def loadData(): Seq[Entity] = {
     filesToFunc
-      .flatMap{
+      .flatMap {
         case (file, func) =>
-          val path = basePath+"/"+file
+          val path = basePath + "/" + file
           func(path)
       }
       .toSeq
@@ -29,7 +29,7 @@ trait DataLoader {
   private[this] def loadUsers(path: String): Seq[User] = {
     val usersXml = XML.load(path)
 
-    for(
+    for (
       userRow <- usersXml \\ "row"
     ) yield {
       User(
@@ -51,7 +51,7 @@ trait DataLoader {
   private[this] def loadPosts(path: String): Seq[Post] = {
     val postsXml = XML.load(path)
 
-    for(
+    for (
       postRow <- postsXml \\ "row"
     ) yield {
       Post(
@@ -76,7 +76,7 @@ trait DataLoader {
   private[this] def loadComments(path: String): Seq[Comment] = {
     val commentsXml = XML.load(path)
 
-    for(
+    for (
       row <- commentsXml \\ "row"
     ) yield {
       Comment(
@@ -93,21 +93,21 @@ trait DataLoader {
   private[this] def loadVotes(path: String): Seq[Vote] = {
     val votesXml = XML.load(path)
 
-    for(
+    for (
       row <- votesXml \\ "row"
     ) yield {
       Vote(
-          matchInt(row \@ "Id"),
-          matchInt(row \@ "PostId"),
-          matchInt(row \@ "VoteTypeId"),
-          parseDate(row \@ "CreationDate"))
+        matchInt(row \@ "Id"),
+        matchInt(row \@ "PostId"),
+        matchInt(row \@ "VoteTypeId"),
+        parseDate(row \@ "CreationDate"))
     }
   }
 
   private[this] def loadBadges(path: String): Seq[Badge] = {
     val badgesXml = XML.load(path)
 
-    for(
+    for (
       row <- badgesXml \\ "row"
     ) yield {
       Badge(
@@ -122,15 +122,15 @@ trait DataLoader {
   private[this] def loadTags(path: String): Seq[Tag] = {
     val tagsXml = XML.load(path)
 
-    for(
+    for (
       row <- tagsXml \\ "row"
     ) yield {
       Tag(
-          matchInt(row \@ "Id"),
-          row \@ "TagName",
-          matchInt(row \@ "Count"),
-          matchInt(row \@ "ExcerptPostId"),
-          matchInt(row \@ "WikiPostId"))
+        matchInt(row \@ "Id"),
+        row \@ "TagName",
+        matchInt(row \@ "Count"),
+        matchInt(row \@ "ExcerptPostId"),
+        matchInt(row \@ "WikiPostId"))
     }
   }
 
@@ -143,7 +143,7 @@ trait DataLoader {
   }
 
   private[this] def parseDate(s: String): LocalDateTime = {
-    if(s == "")
+    if (s == "")
       null
     else
       LocalDateTime.parse(s)
@@ -166,20 +166,20 @@ case class User(
                  lastAccessDate: LocalDateTime) extends Entity(id)
 
 case class Post(
-               id: Int,
-               title: String,
-               body: String,
-               score: Int,
-               viewCount: Int,
-               answerCount: Int,
-               commentCount: Int,
-               ownerUserId: Int,
-               lastEditorUserId: Int,
-               acceptedAnswerId: Int,
-               creationDate: LocalDateTime,
-               lastEditDate: LocalDateTime,
-               lastActivityDate: LocalDateTime,
-               tags: Seq[String]) extends Entity(id)
+                 id: Int,
+                 title: String,
+                 body: String,
+                 score: Int,
+                 viewCount: Int,
+                 answerCount: Int,
+                 commentCount: Int,
+                 ownerUserId: Int,
+                 lastEditorUserId: Int,
+                 acceptedAnswerId: Int,
+                 creationDate: LocalDateTime,
+                 lastEditDate: LocalDateTime,
+                 lastActivityDate: LocalDateTime,
+                 tags: Seq[String]) extends Entity(id)
 
 case class Comment(
                     id: Int,
