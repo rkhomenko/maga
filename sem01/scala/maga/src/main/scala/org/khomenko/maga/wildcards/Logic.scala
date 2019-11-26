@@ -9,17 +9,26 @@ object Logic {
     }
   }
 
+  def filter[T](entities: Seq[Entity]): Seq[T] = {
+    entities.collect {
+      case x: T => x
+    }.foldLeft(Seq.empty[T]) {(a, b) => a :+ b}
+  }
+
   //split entities by type
   def splitEntities(entities: Seq[Entity]): (Seq[User], Seq[Post], Seq[Comment], Seq[Vote], Seq[Badge], Seq[Tag]) = {
-    val grouped = entities.groupBy(_.getClass)
-    (
-      grouped.get(classOf[User]).orNull.asInstanceOf[Seq[User]],
-      grouped.get(classOf[Post]).orNull.asInstanceOf[Seq[Post]],
-      grouped.get(classOf[Comment]).orNull.asInstanceOf[Seq[Comment]],
-      grouped.get(classOf[Badge]).orNull.asInstanceOf[Seq[Vote]],
-      grouped.get(classOf[Badge]).orNull.asInstanceOf[Seq[Badge]],
-      grouped.get(classOf[Tag]).orNull.asInstanceOf[Seq[Tag]]
-    )
+    entities.foldLeft(Seq.empty[User], Seq.empty[Post], Seq.empty[Comment], Seq.empty[Vote], Seq.empty[Badge], Seq.empty[Tag]) {
+      (a, b) => {
+        b match {
+          case u: User => a.copy(_1 = a._1 :+ u)
+          case p: Post => a.copy(_2 = a._2 :+ p)
+          case c: Comment => a.copy(_3 = a._3 :+ c)
+          case v: Vote => a.copy(_4 = a._4 :+ v)
+          case b: Badge => a.copy(_5 = a._5 :+ b)
+          case t: Tag => a.copy(_6 = a._6 :+ t)
+        }
+      }
+    }
   }
 
   //populate fields owner, lastEditor, tags with particular users from Seq[Post] and tags from Seq[Tag]
