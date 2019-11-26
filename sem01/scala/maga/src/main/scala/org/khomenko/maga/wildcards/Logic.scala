@@ -9,12 +9,6 @@ object Logic {
     }
   }
 
-  def filter[T](entities: Seq[Entity]): Seq[T] = {
-    entities.collect {
-      case x: T => x
-    }.foldLeft(Seq.empty[T]) {(a, b) => a :+ b}
-  }
-
   //split entities by type
   def splitEntities(entities: Seq[Entity]): (Seq[User], Seq[Post], Seq[Comment], Seq[Vote], Seq[Badge], Seq[Tag]) = {
     entities.foldLeft(Seq.empty[User], Seq.empty[Post], Seq.empty[Comment], Seq.empty[Vote], Seq.empty[Badge], Seq.empty[Tag]) {
