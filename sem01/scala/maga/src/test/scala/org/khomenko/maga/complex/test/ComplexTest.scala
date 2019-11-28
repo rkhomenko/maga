@@ -10,6 +10,8 @@ import org.khomenko.maga.complex.Complex
 import org.khomenko.maga.complex.Implicits._
 
 class ComplexTest {
+  val tol = 1e-6
+
   @Test
   def creationTest(): Unit = {
     val c = Complex[Real](Real(0), Real(0))
@@ -20,5 +22,29 @@ class ComplexTest {
     Assertions.assertEquals(c3, Complex[Real](Real(1), Real(2)))
     Assertions.assertEquals(c.x.value, 0)
     Assertions.assertEquals(c.y.value, 0)
+  }
+
+  @Test
+  def multiplicationTest(): Unit = {
+    val c1 = Complex[Real](Real(1), Real(1))
+    val c2 = Complex[Real](Real(1), Real(-1))
+    val cr1 = c1 * c2
+
+    Assertions.assertEquals(cr1.x.value, 2, tol)
+    Assertions.assertEquals(cr1.y.value, 0, tol)
+
+    val c3 = Complex[Real](Real(1), Real(0))
+    val c4 = Complex[Real](Real(0), Real(1))
+    val cr2 = c3 * c4
+
+    Assertions.assertEquals(cr2.x.value, 0, tol)
+    Assertions.assertEquals(cr2.y.value, 1, tol)
+
+    val c5 = Complex[Real](Real(1), Real(2))
+    val c6 = Complex[Real](Real(3), Real(4))
+    var cr3 = c5 * c6
+
+    Assertions.assertEquals(cr3.x.value, -5, tol)
+    Assertions.assertEquals(cr3.y.value, 10, tol)
   }
 }
