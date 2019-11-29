@@ -14,4 +14,7 @@ object Implicits {
 
   def additiveIdentity[T <: Field[T]](implicit value: T): T = value.additiveIdentity
   def multiplicativeIdentity[T <: Field[T]](implicit value: T): T = value.multiplicativeIdentity
+
+  implicit def toDouble(x: Real): Double = x.value
+  implicit def fromDouble(x: Double): Real = Real(x)
 }

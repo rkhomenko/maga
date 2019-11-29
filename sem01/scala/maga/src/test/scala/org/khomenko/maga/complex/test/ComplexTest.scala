@@ -30,21 +30,18 @@ class ComplexTest {
     val c2 = Complex[Real](Real(1), Real(-1))
     val cr1 = c1 * c2
 
-    Assertions.assertEquals(cr1.x.value, 2, tol)
-    Assertions.assertEquals(cr1.y.value, 0, tol)
+    Assertions.assertEquals(cr1, Complex[Real](Real(2), Real(0)))
 
     val c3 = Complex[Real](Real(1), Real(0))
     val c4 = Complex[Real](Real(0), Real(1))
     val cr2 = c3 * c4
 
-    Assertions.assertEquals(cr2.x.value, 0, tol)
-    Assertions.assertEquals(cr2.y.value, 1, tol)
+    Assertions.assertEquals(cr2, Complex[Real](Real(0), Real(1)))
 
     val c5 = Complex[Real](Real(1), Real(2))
     val c6 = Complex[Real](Real(3), Real(4))
-    var cr3 = c5 * c6
+    val cr3 = c5 * c6
 
-    Assertions.assertEquals(cr3.x.value, -5, tol)
-    Assertions.assertEquals(cr3.y.value, 10, tol)
+    Assertions.assertEquals(cr3, Complex[Real](Real(-5), Real(10)))
   }
 }
