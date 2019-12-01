@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="wavelets",
-    version="0.0.1",
+    version="1.0.0",
     author="Roman Khomenko",
     author_email="romankhomenko1995@gmail.com",
     description="Wavelets for ML",
@@ -11,5 +11,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
+    test_suit="tests",
     python_requires='>=3.7',
 )
