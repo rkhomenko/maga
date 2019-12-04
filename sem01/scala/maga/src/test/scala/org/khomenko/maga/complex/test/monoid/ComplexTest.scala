@@ -13,14 +13,14 @@ class ComplexTest {
 
   @Test
   def creationTest(): Unit = {
-//    val c = Complex[Real](Real(0), Real(0))
-//    val c2 = Complex[Real](Real(1), Real(2))
-//
-//    val c3 = c + c2
-//
-//    Assertions.assertEquals(c3, Complex[Real](Real(1), Real(2)))
-//    Assertions.assertEquals(c.x.value, 0)
-//    Assertions.assertEquals(c.y.value, 0)
+    val c = Complex[Float](0, 0)
+    val c2 = Complex[Float](1, 2)
+
+    val c3 = c + c2
+
+    Assertions.assertEquals(c3, Complex[Float](1, 2))
+    Assertions.assertEquals(c.x, 0)
+    Assertions.assertEquals(c.y, 0)
   }
 
   @Test
@@ -42,5 +42,18 @@ class ComplexTest {
 //    val cr3 = c5 * c6
 //
 //    Assertions.assertEquals(cr3, Complex[Real](Real(-5), Real(10)))
+  }
+
+  @Test
+  def implicitTupleToComplex(): Unit = {
+    val c: Complex[Float] = (1.0f, 1.0f)
+    Assertions.assertEquals(c, Complex[Float](1, 1))
+  }
+
+  @Test
+  def reImTest(): Unit = {
+    val c = Complex[Float](1, 1)
+    Assertions.assertEquals(c.x, 1, tol)
+    Assertions.assertEquals(c.y, 1, tol)
   }
 }

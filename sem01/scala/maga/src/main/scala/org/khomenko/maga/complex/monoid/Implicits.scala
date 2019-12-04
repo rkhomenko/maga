@@ -45,4 +45,11 @@ object Implicits {
     def *(b: T): T = implicitly[Field[T]].multiplication(a, b)
     def /(b: T): T = a * ~b
   }
+
+  implicit class ComplexExtension[T: Field](c: Complex[T]) {
+    def real(): Complex[T] = Complex[T](c.x, implicitly[Field[T]].additiveIdentity)
+    def imaginary(): Complex[T] = Complex[T](implicitly[Field[T]].additiveIdentity, c.y)
+  }
+
+  implicit def tupleToComplex[T: Field](t: (T, T)): Complex[T] = Complex[T](t._1, t._2)
 }
