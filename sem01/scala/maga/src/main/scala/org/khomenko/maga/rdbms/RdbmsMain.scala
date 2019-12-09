@@ -9,10 +9,13 @@ case class Config(
                    commandLoad: String = "",
                    commandClear: String = "",
                    commandInit: String = "",
+                   commandExtract: String = "",
                    file: String = "",
                    append: Boolean = false,
                    dropTables: Boolean = false,
-                   forse: Boolean = false
+                   force: Boolean = false,
+                   query: String = "",
+                   extractFile: String = ""
                  )
 
 object RdbmsMain {
@@ -55,8 +58,19 @@ object RdbmsMain {
         .children(
           opt[Unit]("force")
             .abbr("f")
-            .action((_, c) => c.copy(forse = true))
+            .action((_, c) => c.copy(force = true))
             .text("Пересоздать таблицы, если существуют")
+        )
+      cmd("extract")
+        .action((_, c) => c.copy(commandExtract = "extract"))
+        .text("Выгрузить данные")
+        .children(
+          opt[String]("query")
+            .abbr("q")
+            .action((q, c) => c.copy(query = q)),
+          opt[String]("file")
+            .abbr("f")
+            .action((f, c) => c.copy(extractFile = f))
         )
 
       // дополнительные проверки целостности команд
@@ -73,25 +87,29 @@ object RdbmsMain {
 
         if (!config.commandClear.isEmpty) {
           if (config.dropTables) {
-            dropTables
+            dropTables()
           } else {
-            clearData
+            clearData()
           }
         }
 
         if (!config.commandInit.isEmpty) {
-          if (config.forse) {
-            dropTables
+          if (config.force) {
+            dropTables()
           }
-          createTables
+          createTables()
         }
 
         if (!config.commandLoad.isEmpty) {
           if (!config.append) {
-            clearData
+            clearData()
           }
 
           loadDataToDB(Logic.splitEntities(DataLoader.loadData(config.file)))
+        }
+
+        if (!config.commandExtract.isEmpty) {
+
         }
 
         DBs.closeAll()
@@ -123,24 +141,24 @@ object RdbmsMain {
             title varchar2(100),
             body varchar2(1000),
             score integer,
-            viewCount integer,
-            answerCount integer,
-            commentCount integer,
-            ownerUserId integer,
-            lastEditorUserId integer,
-            acceptedAnswerId integer,
-            creationDate timestamp,
-            lastEditDate timestamp,
-            lastActivityDate timestamp
+            view_count integer,
+            answer_count integer,
+            comment_count integer,
+            owner_user_id integer,
+            last_editor_user_id integer,
+            accepted_answer_id integer,
+            creation_date timestamp,
+            last_edit_date timestamp,
+            last_activity_date timestamp
          );
 
          create table comments(
             id integer primary key,
-            postId integer,
+            post_id integer,
             score integer,
             text varchar2(500),
-            creationDate timestamp,
-            userId integer
+            creation_date timestamp,
+            user_id integer
         );
        """.execute.apply()
   }
@@ -163,6 +181,7 @@ object RdbmsMain {
 
   def loadDataToDB(tuple: (Seq[User], Seq[Post], Seq[Comment])): Unit = {
     insertUsers(tuple._1)
+    insertPosts(tuple._2)
   }
 
   def insertUsers(users: Seq[User]): Unit = NamedDB(db).autoCommit {
@@ -188,8 +207,35 @@ object RdbmsMain {
       }
   }
 
+  def insertPosts(posts: Seq[Post]): Unit = NamedDB(db).autoCommit {
+    implicit session => {
+      val p = Post.column
+      posts.foreach {
+        post =>
+          withSQL {
+            insert.into(Post).namedValues(
+              p.id -> post.id,
+              p.title -> post.title,
+              p.body -> post.body,
+              p.score -> post.score,
+              p.viewCount -> post.viewCount,
+              p.answerCount -> post.answerCount,
+              p.commentCount -> post.commentCount,
+              p.ownerUserId -> post.ownerUserId,
+              p.lastEditorUserId -> post.lastEditorUserId,
+              p.acceptedAnswerId -> post.acceptedAnswerId,
+              p.creationDate -> post.creationDate,
+              p.lastEditDate -> post.lastEditDate,
+              p.lastActivityDate -> post.lastActivityDate
+            )
+          }
+      }
+    }
+  }
+
   object User extends SQLSyntaxSupport[User] {
     override val tableName: String = "users"
+
     override def connectionPoolName: Any = Symbol("so")
 
     def apply(user: ResultName[User])(rs: WrappedResultSet): User = {
@@ -205,16 +251,31 @@ object RdbmsMain {
         rs.int(user.accountId),
         rs.localDateTime(user.creationDate),
         rs.localDateTime(user.lastAccessDate)
-//        rs.int(user.id),
-//        rs.string(user.title),
-//        rs.string(user.body),
-//        rs.int(user.score),
-//        rs.int(user.viewCount),
-//        rs.int(user.commentCount),
-//        rs.int(user.ownerUserId),
-//        rs.int(user.acceptedAnswerId),
-//        rs.localDate(user.creationDate),
-//        rs.localDate(user.lastEditD)
+      )
+    }
+  }
+
+  object Post extends SQLSyntaxSupport[Post] {
+    override val tableName: String = "posts"
+
+    override def connectionPoolName: Any = Symbol("so")
+
+    def apply(post: ResultName[Post])(rs: WrappedResultSet): Post = {
+      new Post(
+        rs.int(post.id),
+        rs.string(post.title),
+        rs.string(post.body),
+        rs.int(post.score),
+        rs.int(post.viewCount),
+        rs.int(post.answerCount),
+        rs.int(post.commentCount),
+        rs.int(post.ownerUserId),
+        rs.int(post.lastEditorUserId),
+        rs.int(post.acceptedAnswerId),
+        rs.localDateTime(post.creationDate),
+        rs.localDateTime(post.lastEditDate),
+        rs.localDateTime(post.lastActivityDate),
+        Seq()
       )
     }
   }
