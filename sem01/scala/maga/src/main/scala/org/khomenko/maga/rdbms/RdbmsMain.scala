@@ -1,5 +1,7 @@
 package org.khomenko.maga.rdbms
 
+import java.io.PrintWriter
+
 import scopt.OptionParser
 import org.log4s._
 import scalikejdbc._
@@ -24,7 +26,7 @@ object RdbmsMain {
   val db = Symbol("so")
 
   def main(args: Array[String]): Unit = {
-    val parser = new OptionParser[Config]("IrisLoader") {
+    val parser = new OptionParser[Config]("StackOverflowLoader") {
 
       // название утилиты при распечатке
       head("StackOverflowLoader", "1.0")
@@ -76,7 +78,11 @@ object RdbmsMain {
       // дополнительные проверки целостности команд
       // в данном случае проверяем, что задана хотя бы одна команда
       checkConfig { c =>
-        if (c.commandInit.isEmpty && c.commandLoad.isEmpty && c.commandClear.isEmpty) failure("Нужно указать хотя бы одну комманду") else success
+        if (c.commandInit.isEmpty && c.commandLoad.isEmpty && c.commandClear.isEmpty && c.commandExtract.isEmpty) {
+          failure("Нужно указать хотя бы одну комманду")
+        } else {
+          success
+        }
       }
     }
 
@@ -109,7 +115,10 @@ object RdbmsMain {
         }
 
         if (!config.commandExtract.isEmpty) {
-
+          new PrintWriter(config.extractFile) {
+            extractDataFromDb(config.query).foreach(s => println(s));
+            close()
+          }
         }
 
         DBs.closeAll()
@@ -126,7 +135,7 @@ object RdbmsMain {
             id integer primary key ,
             display_name varchar2(100),
             location varchar2(100),
-            about varchar(400),
+            about varchar2(10000),
             reputation integer,
             views integer,
             up_votes integer,
@@ -138,8 +147,8 @@ object RdbmsMain {
 
          create table posts (
             id integer primary key ,
-            title varchar2(100),
-            body varchar2(1000),
+            title varchar2(1000),
+            body varchar2(50000),
             score integer,
             view_count integer,
             answer_count integer,
@@ -156,7 +165,7 @@ object RdbmsMain {
             id integer primary key,
             post_id integer,
             score integer,
-            text varchar2(500),
+            text varchar2(10000),
             creation_date timestamp,
             user_id integer
         );
@@ -182,6 +191,38 @@ object RdbmsMain {
   def loadDataToDB(tuple: (Seq[User], Seq[Post], Seq[Comment])): Unit = {
     insertUsers(tuple._1)
     insertPosts(tuple._2)
+    insertComments(tuple._3)
+  }
+
+  def extractDataFromDb(query: String): List[String] = NamedDB(db) readOnly {
+    implicit session => {
+      session
+        .list(query) {
+          rs =>
+            if (rs.row == 1) {
+              List(
+                (1 to rs.metaData.getColumnCount).map(i => {
+                  rs.metaData.getColumnName(i)
+                }).mkString(","),
+                (1 to rs.metaData.getColumnCount).map(i => {
+                  if (rs.metaData.getColumnName(i) == "VARCHAR2") {
+                    s"""${rs.string(i)}"""
+                  } else {
+                    rs.string(i)
+                  }
+                }).mkString(",")
+              )
+            }else {
+              List((1 to rs.metaData.getColumnCount).map(i => {
+                if (rs.metaData.getColumnName(i) == "VARCHAR2") {
+                  s"""${rs.string(i)}"""
+                } else {
+                  rs.string(i)
+                }
+              }).mkString(","))
+            }
+        }.flatten
+    }
   }
 
   def insertUsers(users: Seq[User]): Unit = NamedDB(db).autoCommit {
@@ -203,7 +244,7 @@ object RdbmsMain {
               u.creationDate -> user.creationDate,
               u.lastAccessDate -> user.lastAccessDate
             )
-          )
+          ).update().apply()
       }
   }
 
@@ -228,7 +269,26 @@ object RdbmsMain {
               p.lastEditDate -> post.lastEditDate,
               p.lastActivityDate -> post.lastActivityDate
             )
-          }
+          }.update().apply()
+      }
+    }
+  }
+
+  def insertComments(comments: Seq[Comment]): Unit = NamedDB(db).autoCommit {
+    implicit session => {
+      val c = Comment.column
+      comments.foreach {
+        comment =>
+          withSQL {
+            insert.into(Comment).namedValues(
+              c.id -> comment.id,
+              c.postId -> comment.postId,
+              c.score -> comment.score,
+              c.text -> comment.text,
+              c.creationDate -> comment.creationDate,
+              c.userId -> comment.userId
+            )
+          }.update().apply()
       }
     }
   }
@@ -279,4 +339,22 @@ object RdbmsMain {
       )
     }
   }
+
+  object Comment extends SQLSyntaxSupport[Comment] {
+    override val tableName: String = "comments"
+
+    override def connectionPoolName: Any = Symbol("so")
+
+    def apply(comment: ResultName[Comment])(rs: WrappedResultSet): Comment = {
+      new Comment(
+        rs.int(comment.id),
+        rs.int(comment.postId),
+        rs.int(comment.score),
+        rs.string(comment.text),
+        rs.localDateTime(comment.creationDate),
+        rs.int(comment.userId)
+      )
+    }
+  }
+
 }
