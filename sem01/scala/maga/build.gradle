@@ -23,11 +23,18 @@ repositories {
     jcenter()
 }
 
+
 dependencies {
     // Scala
     implementation 'org.scala-lang:scala-library:2.13.1'
     implementation 'org.scala-lang:scala-reflect:2.13.1'
     implementation 'org.scala-lang.modules:scala-xml_2.13:1.2.0'
+    implementation 'org.log4s:log4s_2.13:1.8.2'
+    implementation 'org.slf4j:slf4j-log4j12:1.7.28'
+    implementation 'com.h2database:h2:1.4.200'
+    implementation 'org.scalikejdbc:scalikejdbc_2.13:3.4.0'
+    implementation 'org.scalikejdbc:scalikejdbc-config_2.13:3.3.5'
+    implementation 'com.github.scopt:scopt_2.13:3.7.1'
 
     // Use JUnit Jupiter API for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
@@ -37,10 +44,23 @@ dependencies {
 }
 
 application {
-    mainClassName='org.khomenko.maga.sandbox.HelloWorld'
+    mainClassName='org.khomenko.maga.rdbms.RdbmsMain'
 }
 
 test {
     // Use junit platform for unit tests
     useJUnitPlatform()
+}
+
+task fatJar(type: Jar) {
+
+    manifest {
+        attributes 'Main-Class': 'org.khomenko.maga.rdbms.RdbmsMain'
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    with jar
 }
