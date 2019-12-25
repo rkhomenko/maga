@@ -13,7 +13,7 @@ from (
               , AVG_SUM
               , dense_rank()
                  over (partition by trunc(MONTHS_BETWEEN(SALE_DATE, to_date('01-10-2013', 'DD-MM-YY'))) order by AVG_SUM
-                     desc)                                     k
+                     desc)                                                          k
          from (
                   select SALE_DATE
                        , SALE_AMOUNT
@@ -50,14 +50,18 @@ group by MONTH, MANAGER_ID, MANAGER_FIRST_NAME, MANAGER_LAST_NAME, AVG_SUM;
 -- Выведите год, office_id, city_name, country, относительный объем продаж за текущий год
 -- Офисы, которые демонстрируют наименьший относительной объем в течение двух лет скорее всего будут закрыты.
 
-select distinct to_char(SALE_DATE, 'YYYY')                                                    YEAR,
-                OFFICE_ID,
-                CITY_NAME,
-                COUNTRY,
-                (sum(SALE_AMOUNT) over (partition by OFFICE_ID, to_char(SALE_DATE, 'YYYY')))
-                    / (sum(SALE_AMOUNT) over (partition by to_char(SALE_DATE, 'YYYY'))) * 100 total_sale
-from V_FACT_SALE
-where to_char(SALE_DATE, 'YYYY') between 2013 and 2014;
+select YEAR, OFFICE_ID, CITY_NAME, COUNTRY, TOTAL_SALE
+from (select to_char(SALE_DATE, 'YYYY')                                                    YEAR,
+             OFFICE_ID,
+             CITY_NAME,
+             COUNTRY,
+             (sum(SALE_AMOUNT) over (partition by OFFICE_ID, to_char(SALE_DATE, 'YYYY')))
+                 / (sum(SALE_AMOUNT) over (partition by to_char(SALE_DATE, 'YYYY'))) * 100 total_sale
+      from V_FACT_SALE
+      where to_char(SALE_DATE, 'YYYY') between 2013 and 2014)
+group by YEAR, OFFICE_ID, CITY_NAME, COUNTRY, TOTAL_SALE
+order by YEAR, OFFICE_ID;
+
 
 /* ------------------------------------------------------------------------------
 2013	280	Bafang	Cameroon	0.2353479987193085283164098683327477550755
@@ -158,6 +162,46 @@ from (
 where dist >= 0.9
    or dist <= 0.1;
 
+-- fix
+
+select PRODUCT_ID
+     , PRODUCT_NAME
+     , TOTAL_SALE_AMOUNT
+     , round(PROPORTION * 100, 4) PERSENT
+from (
+         select PRODUCT_ID
+              , PRODUCT_NAME
+              , sum(SALE_PRICE)                              TOTAL_SALE_AMOUNT
+              , cume_dist() over ( order by sum(SALE_PRICE)) dist
+              , RATIO_TO_REPORT(sum(SALE_AMOUNT)) OVER () AS PROPORTION
+         from V_FACT_SALE
+         where SALE_DATE between to_date('01-01-2014', 'DD-MM-YY') and to_date('31-12-2014', 'DD-MM-YY')
+         group by PRODUCT_ID, PRODUCT_NAME
+     )
+where dist >= 0.9
+   or dist <= 0.1;
+
+
+
+select PRODUCT_ID,
+       PRODUCT_NAME,
+       PRICE,
+       PRODUCT_TOTAL_AMOUNT,
+       PRODUCT_TOTAL_AMOUNT / sum(PRODUCT_TOTAL_AMOUNT) over () * 100 as RATIO
+from (
+         select PRODUCT_ID,
+                PRODUCT_NAME,
+                AVG(SALE_PRICE)                             as PRICE,
+                SUM(SALE_AMOUNT)                            as PRODUCT_TOTAL_AMOUNT,
+                cume_dist() over (order by AVG(SALE_PRICE)) as DIST
+         from V_FACT_SALE
+         where SALE_DATE between to_date('01-01-2014', 'DD-MM-YY') and to_date('31-12-2014', 'DD-MM-YY')
+         group by PRODUCT_ID, PRODUCT_NAME
+         order by PRICE)
+where DIST <= 0.1
+   or DIST >= 0.9
+ORDER BY PRICE;
+
 /* ------------------------------------------------------------------------------
 981	Japanese Black Pine	26483.1	0.0612
 755	STRYCHNOS NUX-VOMICA SEED	33074.2	0.0765
@@ -204,13 +248,17 @@ China	Gonzalez Janet, Gordon Lawrence, Sanders Norma,
 --      expensive_price
 -- средняя цена;
 
-select distinct to_char(SALE_DATE, 'MM') MONTH,
-                last_value(PRODUCT_ID) over(partition by to_char(SALE_DATE, 'MM') order by SALE_PRICE rows between unbounded preceding  and unbounded following ) EXP_PRODUCT_ID,
-                last_value(product_name) over(partition by to_char(SALE_DATE, 'MM') order by SALE_PRICE rows between unbounded preceding  and unbounded following ) EXP_PRODUCT_NAME,
-                first_value(PRODUCT_ID) over(partition by to_char(SALE_DATE, 'MM') order by SALE_PRICE rows between unbounded preceding  and unbounded following ) CHP_PRODUCT_ID,
-                first_value(product_name) over(partition by to_char(SALE_DATE, 'MM') order by SALE_PRICE rows between unbounded preceding  and unbounded following ) CHP_PRODUCT_NAME,
-                max(SALE_PRICE) over(partition by to_char(SALE_DATE, 'MM')) EXP_PRICE,
-                min(SALE_PRICE) over(partition by to_char(SALE_DATE, 'MM'))  CHP_PRICE
+select distinct to_char(SALE_DATE, 'MM')                                                                                                               MONTH,
+                last_value(PRODUCT_ID)
+                           over (partition by to_char(SALE_DATE, 'MM') order by SALE_PRICE rows between unbounded preceding and unbounded following )  EXP_PRODUCT_ID,
+                last_value(product_name)
+                           over (partition by to_char(SALE_DATE, 'MM') order by SALE_PRICE rows between unbounded preceding and unbounded following )  EXP_PRODUCT_NAME,
+                first_value(PRODUCT_ID)
+                            over (partition by to_char(SALE_DATE, 'MM') order by SALE_PRICE rows between unbounded preceding and unbounded following ) CHP_PRODUCT_ID,
+                first_value(product_name)
+                            over (partition by to_char(SALE_DATE, 'MM') order by SALE_PRICE rows between unbounded preceding and unbounded following ) CHP_PRODUCT_NAME,
+                max(SALE_PRICE) over (partition by to_char(SALE_DATE, 'MM'))                                                                           EXP_PRICE,
+                min(SALE_PRICE) over (partition by to_char(SALE_DATE, 'MM'))                                                                           CHP_PRICE
 from V_FACT_SALE
 where SALE_DATE between to_date('01-01-2014', 'DD-MM-YY') and to_date('31-12-2014', 'DD-MM-YY');
 
@@ -233,16 +281,21 @@ where SALE_DATE between to_date('01-01-2014', 'DD-MM-YY') and to_date('31-12-201
 
 select distinct MONTH,
                 SALES_AMOUNT,
-                sum(SALARY) over (partition by MONTH )                 SALARY_AMOUNT,
+                sum(SALARY) over (partition by MONTH )               SALARY_AMOUNT,
                 SALES_AMOUNT - sum(SALARY) over (partition by MONTH) PROFIT_AMOUNT
 from (
-         select to_char(SALE_DATE, 'MM')                                         MONTH,
-                sum(SALE_AMOUNT) over (partition by to_char(SALE_DATE, 'MM'))   SALES_AMOUNT,
+         select to_char(SALE_DATE, 'MM')                                                                 MONTH,
+                sum(SALE_AMOUNT) over (partition by to_char(SALE_DATE, 'MM'))                            SALES_AMOUNT,
                 sum(SALE_AMOUNT) over (partition by MANAGER_ID, to_char(SALE_DATE, 'MM')) * 0.05 + 30000 SALARY
          from V_FACT_SALE
          where to_char(SALE_DATE, 'YYYY') = 2014
      )
 order by MONTH;
+
+-- 01	3578273.01	9833520.7935	-6255247.7835
+select sum(sale_amount)
+from V_FACT_SALE
+where to_char(SALE_DATE, 'MM.YYYY') = '01.2014';
 
 /* ------------------------------------------------------------------------------
 01	3578273.01	9833520.7935	-6255247.7835
